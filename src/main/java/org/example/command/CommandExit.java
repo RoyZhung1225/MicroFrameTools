@@ -16,6 +16,6 @@ public class CommandExit implements CommandHandler {
 
     @Override
     public String getDescription() {
-        return "";
+        return "exit program.";
     }
 }

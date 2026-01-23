@@ -6,38 +6,41 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 public class GlobalVariable {
     private final Map<String, Consumer<String>> optionMap;
+
+    @Getter
+    private final CustomConfig config;
     @Getter
     private final ProgramConfig program;
     @Getter
-    private final CustomConfig customConfig;
-    @Getter
     private final IgnoreList ignoreList;
+
+    private Logger getLogger(){
+        return Application.getInstance().getLogger();
+    }
+
 
     public GlobalVariable(){
         this.optionMap = new HashMap<>();
-
-        this.register();
-
-        this.program = new ProgramConfig();
-        this.customConfig = new CustomConfig();
-        this.ignoreList = new IgnoreList();
-    }
-    public void reload(){
-        this.customConfig.reload(Application.getInstance().getConfigLoader().getConfig());
-        this.ignoreList.reloadFile(Application.getInstance().getConfigLoader().getIgnoreFile());
-        this.ignoreList.reloadFolder(Application.getInstance().getConfigLoader().getIgnoreFolder());
-    }
-
-    public void register(){
         this.optionMap.put("-p", this::updateWorkFolder);
         this.optionMap.put("-path", this::updateWorkFolder);
         this.optionMap.put("-g", this::updateGuard);
         this.optionMap.put("-guard", this::updateGuard);
         this.optionMap.put("-n", this::updateNamespace);
         this.optionMap.put("-namespace", this::updateNamespace);
+
+        this.config = new CustomConfig();
+        this.program = new ProgramConfig();
+        this.ignoreList = new IgnoreList();
+    }
+
+    public void reload(){
+        this.config.reload(Application.getInstance().getConfigLoader().getConfig());
+        this.ignoreList.reloadFile(Application.getInstance().getConfigLoader().getIgnoreFile());
+        this.ignoreList.reloadFolder(Application.getInstance().getConfigLoader().getIgnoreFolder());
     }
 
     public void update(String[] args){
@@ -56,19 +59,24 @@ public class GlobalVariable {
         }
     }
 
-    public void updateWorkFolder(String var){this.program.setWorkFolder(new File(var));}
-    private void updateGuard(String var){
-        this.customConfig.setGuard(var);
+
+    private void updateWorkFolder(String var){
+        this.program.setWorkFolder(new File(var));
     }
+
+    private void updateGuard(String var){
+        this.config.setGuard(var);
+    }
+
     private void updateNamespace(String var){
-        this.customConfig.setNamespace(var);
+        this.config.setNamespace(var);
     }
 
     @Override
     public String toString(){
         return this.program.toString() +
                 "\r\n" +
-                this.customConfig.toString() +
+                this.config.toString() +
                 "\r\n" +
                 this.ignoreList.toString();
     }

@@ -14,6 +14,7 @@ public class IncludeList {
     private final File baseFolder;
     private List<String> fileList;
     private List<IncludeList> folderList;
+    private static final IncludeReplacer replacer  = new IncludeReplacer();
 
     public IncludeList(File folder, IgnoreList ignoreList){
         this.baseFolder = folder;
@@ -107,12 +108,21 @@ public class IncludeList {
         File pf = new File(this.baseFolder, "package-info.h");
 
         try {
-            if(pf.exists())
-                pf.delete();
+            if(!pf.exists()){
+                pf.createNewFile();
+                Files.writeString(pf.toPath(), this.generator(format), StandardCharsets.UTF_8);
+                this.getLogger().info("write file : " + pf);
+                return;
+            }
+            String original = Files.readString(pf.toPath(), StandardCharsets.UTF_8);
 
-            pf.createNewFile();
-            Files.writeString(pf.toPath(), this.generator(format), StandardCharsets.UTF_8);
-            this.getLogger().info("write file : " + pf);
+            String updated = replacer.replace(
+                    original, this.getIncludeFolders(), getIncludeFiles()
+            );
+
+            Files.writeString(pf.toPath(), updated, StandardCharsets.UTF_8);
+            this.getLogger().info("update file : " + pf);
+
         } catch (IOException e) {
             this.getLogger().warning("write file fail : " + pf);
         }

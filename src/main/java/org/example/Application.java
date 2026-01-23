@@ -9,49 +9,49 @@ import java.util.Scanner;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Logger;
 
-public class Application extends Terminal implements Runnable {
+public final class Application extends Terminal implements Runnable {
     @Getter
-    public static Application instance;
-    @Getter
-    private final ConfigLoader configLoader;
+    private static Application instance;
     @Getter
     private final GlobalVariable global;
     @Getter
     private final Logger logger;
+    @Getter
+    private final ConfigLoader configLoader;
     private final Scanner scanner;
     private boolean start;
 
-    public Application(String[] args){
+    public Application(String[] args) {
         Application.instance = this;
         this.logger = this.setupLogger();
         this.scanner = new Scanner(System.in);
         this.global = new GlobalVariable();
         this.configLoader = new ConfigLoader();
-        this.start = true;
-        this.register();
-    }
-    public void stop(){
-        this.start = false;
-    }
+        this.global.reload();
+        this.global.update(args);
 
-    public void run(){
-        while (this.start){
-            this.logger.info("> ");
-            this.execute(this.scanner.nextLine(), this.logger);
-        }
-    }
-
-    public void register(){
-        this.commandHandlerMap.put("create", new CommandCreate());
         this.commandHandlerMap.put("package", new CommandPackage());
         this.commandHandlerMap.put("exit", new CommandExit());
         this.commandHandlerMap.put("info", new CommandInfo());
         this.commandHandlerMap.put("setting", new CommandSetting());
         this.commandHandlerMap.put("reload", new CommandReload());
-        this.commandHandlerMap.put("decreate", new CommandCreateDebug());
+        this.commandHandlerMap.put("create", new CommandCreate());
+
+        this.start = true;
     }
 
-    private Logger setupLogger(){
+    public void stop() {
+        this.start = false;
+    }
+
+    public void run() {
+        while (this.start) {
+            this.logger.info("> ");
+            this.execute(this.scanner.nextLine(), this.logger);
+        }
+    }
+
+    private Logger setupLogger() {
         Logger result = Logger.getGlobal();
         ConsoleHandler consoleHandler = new ConsoleHandler();
         consoleHandler.setFormatter(new LoggerFormat());
@@ -59,5 +59,4 @@ public class Application extends Terminal implements Runnable {
         result.addHandler(consoleHandler);
         return result;
     }
-
 }

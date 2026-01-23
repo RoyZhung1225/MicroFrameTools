@@ -6,7 +6,6 @@ import java.io.File;
 
 @Data
 public class ProgramConfig {
-
     private File workFolder;
     private File programFolder;
 
@@ -25,4 +24,5 @@ public class ProgramConfig {
                 "program.work = " +
                 this.workFolder;
     }
+
 }

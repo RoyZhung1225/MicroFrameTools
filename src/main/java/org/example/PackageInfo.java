@@ -19,7 +19,7 @@ public class PackageInfo {
     }
 
     public File getWorkFolder(){
-        return new File(Application.getInstance().getGlobal().getProgram().getWorkFolder(), Application.getInstance().getGlobal().getCustomConfig().getPath());
+        return new File(Application.getInstance().getGlobal().getProgram().getWorkFolder(), Application.getInstance().getGlobal().getConfig().getPath());
     }
 
     public void update(){
