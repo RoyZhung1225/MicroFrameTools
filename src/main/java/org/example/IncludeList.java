@@ -14,7 +14,6 @@ public class IncludeList {
     private final File baseFolder;
     private List<String> fileList;
     private List<IncludeList> folderList;
-    private static final IncludeReplacer replacer  = new IncludeReplacer();
 
     public IncludeList(File folder, IgnoreList ignoreList){
         this.baseFolder = folder;
@@ -104,29 +103,41 @@ public class IncludeList {
         return format;
     }
 
+    private static final PackageInfoReplacer replacer = new PackageInfoReplacer();
+
     public void write(String format){
         File pf = new File(this.baseFolder, "package-info.h");
 
         try {
-            if(!pf.exists()){
+            if (!pf.exists()) {
                 pf.createNewFile();
                 Files.writeString(pf.toPath(), this.generator(format), StandardCharsets.UTF_8);
                 this.getLogger().info("write file : " + pf);
                 return;
             }
+
             String original = Files.readString(pf.toPath(), StandardCharsets.UTF_8);
 
-            String updated = replacer.replace(
-                    original, this.getIncludeFolders(), getIncludeFiles()
+            PackageInfoReplacer.ReplaceResult rr = replacer.replace(
+                    original,
+                    this.getIncludeFolders(),
+                    this.getIncludeFiles()
             );
 
-            Files.writeString(pf.toPath(), updated, StandardCharsets.UTF_8);
+            // 找不到章節就跳過，不全覆蓋
+            if (rr.result != PackageInfoReplacer.Result.REPLACED) {
+                this.getLogger().warning("section not found, skip update: " + pf);
+                return;
+            }
+
+            Files.writeString(pf.toPath(), rr.content, StandardCharsets.UTF_8);
             this.getLogger().info("update file : " + pf);
 
         } catch (IOException e) {
             this.getLogger().warning("write file fail : " + pf);
         }
     }
+
 
     public void writeAll(String format){
         this.write(format);

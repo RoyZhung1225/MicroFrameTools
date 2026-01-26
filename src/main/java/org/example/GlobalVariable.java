@@ -44,7 +44,13 @@ public class GlobalVariable {
     }
 
     public void update(String[] args){
+
+        if(args.length == 0){
+            Application.getInstance().getLogger().info("usage: setting -<command>");
+            return;
+        }
         for(int i=0; i<args.length; ++i){
+
             if(args[i].charAt(0) == '-'){
                 Consumer<String> method = optionMap.get(args[i]);
                 if(method == null)
@@ -54,6 +60,12 @@ public class GlobalVariable {
                 if(i>args.length)
                     break;
 
+                if(i == args.length){
+                    this.getLogger().info("no setting value.");
+                    break;
+                }
+
+
                 method.accept(args[i]);
             }
         }
@@ -61,6 +73,10 @@ public class GlobalVariable {
 
 
     private void updateWorkFolder(String var){
+        if(!Application.getInstance().getGlobal().getConfig().isRootMode()){
+            Application.getInstance().getLogger().info("rootMode is not open.");
+            return;
+        }
         this.program.setWorkFolder(new File(var));
     }
 

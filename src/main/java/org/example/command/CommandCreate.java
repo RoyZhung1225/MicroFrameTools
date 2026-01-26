@@ -58,13 +58,19 @@ public class CommandCreate implements CommandHandler {
             path = stringBuff.get();
 
         if (key == null) {
-            logger.info("no key");
+            logger.info("usage: create <file> fileName");
+            return true;
+        }
+
+        if(name.equalsIgnoreCase("")){
+            logger.info("usage: create <file> fileName");
             return true;
         }
 
         BiPredicate<Logger, Map<String, String>> func = this.option.get(key);
         if (func == null) {
-            logger.info("key not found");
+            logger.info("unknown command");
+            logger.info("usage: create <file> fileName");
             return true;
         }
 
@@ -74,14 +80,14 @@ public class CommandCreate implements CommandHandler {
         map.put("$CLASSNAME$", name);
 
         if (func.test(logger, map))
-            logger.info("successful");
+            logger.info("success");
 
         return true;
     }
 
     @Override
     public String getDescription() {
-        return "create new file";
+        return "create a new file";
     }
 
     private static String fileReplace(String source, Map<String, String> map) {
@@ -144,7 +150,6 @@ public class CommandCreate implements CommandHandler {
         File file = new File(folder, className + temp.substring(temp.indexOf(".")));
 
         header = fileReplace(header, map);
-
 
         if (!writeFile(file, header)) {
             logger.warning(String.format("make %s failure.", file));

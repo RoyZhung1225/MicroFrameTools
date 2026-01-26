@@ -28,7 +28,7 @@ public final class Application extends Terminal implements Runnable {
         this.global = new GlobalVariable();
         this.configLoader = new ConfigLoader();
         this.global.reload();
-        this.global.update(args);
+
 
         this.commandHandlerMap.put("package", new CommandPackage());
         this.commandHandlerMap.put("exit", new CommandExit());

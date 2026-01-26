@@ -2,3 +2,4 @@ namespace: mframe
 guard: MFRAME_
 path: "cpp\\src\\"
 test: "cpp\\tests\\"
+rootmode: false

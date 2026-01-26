@@ -14,53 +14,42 @@ public class CustomConfig {
     private String debug = "";
 
     private boolean rootMode = false;
-    public CustomConfig(){
+
+    public CustomConfig() {
     }
 
-    public void reload(String source){
+    private String loadConfig(String config, String source){
+
         Yaml yaml = new Yaml();
 
         Map<String, Object> map = yaml.load(source);
 
         if(map == null)
-            return;
+            return null;
 
         Object obj;
-
-        obj = map.get("guard");
-
-        if(obj != null)
-            this.guard = (String)obj;
-
-        obj = map.get("namespace");
+        obj = map.get(config);
+        String load = "";
+        if (obj == null) {
+            Application.getInstance().getLogger().info(String.format("Config <%s> loading error! Please check.", config));
+        }
 
         if(obj != null)
-            this.namespace = (String)obj;
+            load = (String)obj;
 
-        obj = map.get("rootMode");
+        return load;
+    }
 
-        if(obj != null)
-            this.rootMode = (Boolean)obj;
+    public void reload(String source) {
 
-        obj = map.get("path");
-
-        if(obj != null)
-            this.path = (String)obj;
-
-        obj = map.get("test");
-
-        if(obj != null)
-            this.test = (String)obj;
-
-        obj = map.get("debug");
-
-        if(obj != null)
-            this.debug = (String)obj;
-
+        this.namespace = this.loadConfig("namespace", source);
+        this.guard = this.loadConfig("guard", source);
+        this.path = this.loadConfig("path", source);
+        this.test = this.loadConfig("test", source);
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return "config.guard = " +
                 this.guard +
                 "\r\nconfig.namespace = " +

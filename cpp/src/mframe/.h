@@ -4,8 +4,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef MFRAME_6A5402A9_09E9_4E33_BE9D_440B4A6046B0
-#define MFRAME_6A5402A9_09E9_4E33_BE9D_440B4A6046B0
+#ifndef MFRAME_CBA58F61_2149_4A36_AF70_FA5CF962961B
+#define MFRAME_CBA58F61_2149_4A36_AF70_FA5CF962961B
 
 /* ***************************************************************************************
  * Include
@@ -92,4 +92,4 @@ class mframe:: : public ufm::lang::Object{
  * End of file
  */ 
 
-#endif /* MFRAME_6A5402A9_09E9_4E33_BE9D_440B4A6046B0 */
+#endif /* MFRAME_CBA58F61_2149_4A36_AF70_FA5CF962961B */
