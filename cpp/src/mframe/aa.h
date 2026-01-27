@@ -4,8 +4,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef MFRAME_CBA58F61_2149_4A36_AF70_FA5CF962961B
-#define MFRAME_CBA58F61_2149_4A36_AF70_FA5CF962961B
+#ifndef MFRAME_4508C092_01C1_4789_860E_C87C94ECA4CD
+#define MFRAME_4508C092_01C1_4789_860E_C87C94ECA4CD
 
 /* ***************************************************************************************
  * Include
@@ -20,7 +20,7 @@
  * Namespace
  */  
 namespace mframe{
-  class ;
+  class aa;
 } // namespace mframe
 
 
@@ -29,11 +29,11 @@ namespace mframe{
  */
 
 /**
- * @class mframe::
+ * @class mframe::aa
  * @brief 
  * 
  */
-class mframe:: : public ufm::lang::Object{
+class mframe::aa : public ufm::lang::Object{
 
   /* *************************************************************************************
    * Variable
@@ -51,13 +51,13 @@ class mframe:: : public ufm::lang::Object{
    * @brief Construct a new object
    *
    */
-  (void);
+  aa(void);
 
   /**
    * @brief Destroy the object
    *
    */
-  virtual ~(void) override;
+  virtual ~aa(void) override;
   
   /* *************************************************************************************
    * Operator Method
@@ -92,4 +92,4 @@ class mframe:: : public ufm::lang::Object{
  * End of file
  */ 
 
-#endif /* MFRAME_CBA58F61_2149_4A36_AF70_FA5CF962961B */
+#endif /* MFRAME_4508C092_01C1_4789_860E_C87C94ECA4CD */
