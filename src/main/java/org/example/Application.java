@@ -1,20 +1,18 @@
 package org.example;
 
 import lombok.Getter;
-import net.kitsu.lib.util.format.LoggerFormat;
-import net.kitsu.lib.util.terminal.Terminal;
-import org.example.command.*;
+
+import org.example.util.format.LoggerFormat;
+import org.example.util.terminal.*;
+
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Scanner;
+import java.util.*;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Logger;
 
-import static org.example.WorkspaceGuard.checkWorkspace;
-
-public final class Application extends Terminal implements Runnable {
+public final class Application extends FrameTerminal{
     @Getter
     private static Application instance;
     @Getter
@@ -23,17 +21,16 @@ public final class Application extends Terminal implements Runnable {
     private final Logger logger;
     @Getter
     private final ConfigLoader configLoader;
-    private final Scanner scanner;
+    @Getter
     private boolean start;
 
     public Application(String[] args) throws IOException {
+
         Application.instance = this;
         this.logger = this.setupLogger();
-        this.scanner = new Scanner(System.in);
         this.global = new GlobalVariable();
         this.configLoader = new ConfigLoader();
         this.global.reload();
-
 
         this.commandHandlerMap.put("package", new CommandPackage());
         this.commandHandlerMap.put("exit", new CommandExit());
@@ -41,6 +38,7 @@ public final class Application extends Terminal implements Runnable {
         this.commandHandlerMap.put("setting", new CommandSetting());
         this.commandHandlerMap.put("reload", new CommandReload());
         this.commandHandlerMap.put("create", new CommandCreate());
+        this.commandHandlerMap.put("guard", new CommandGuardPlan());
 
         Path work = global.getProgram().getWorkFolder().toPath();
         WorkspaceGuard.checkWorkspace(work, logger);
@@ -54,19 +52,34 @@ public final class Application extends Terminal implements Runnable {
         this.start = false;
     }
 
-    public void run() {
-        while (this.start) {
-            this.logger.info("> ");
-            this.execute(this.scanner.nextLine(), this.logger);
+    public void executeLine(String line){
+        this.execute(line, this.logger);
+    }
+
+    public List<String> getCommandNames(){
+        List<String> commandList = new LinkedList<>();
+        for (Map.Entry<String, CommandHandler> entry : this.commandHandlerMap.entrySet()){
+            commandList.add(entry.getKey());
         }
+        return commandList;
+    }
+
+    public CommandHandler getHandler(String name) {
+        return this.commandHandlerMap.get(name);
     }
 
     private Logger setupLogger() {
         Logger result = Logger.getGlobal();
-        ConsoleHandler consoleHandler = new ConsoleHandler();
-        consoleHandler.setFormatter(new LoggerFormat());
         result.setUseParentHandlers(false);
-        result.addHandler(consoleHandler);
+
+        // 清掉既有 handler，避免重複輸出（尤其你會重建 Application）
+        for (var h : result.getHandlers()) {
+            result.removeHandler(h);
+        }
+
+        // 改成 JLine-aware handler：走 reader.printAbove，避免破壞輸入行/候選清單
+        result.addHandler(new org.example.util.terminal.JLineLogHandler(new LoggerFormat()));
         return result;
     }
+
 }

@@ -4,13 +4,14 @@ import lombok.Getter;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class GlobalVariable {
+    @Getter
     private final Map<String, Consumer<String>> optionMap;
-
     @Getter
     private final CustomConfig config;
     @Getter
@@ -24,7 +25,7 @@ public class GlobalVariable {
 
 
     public GlobalVariable(){
-        this.optionMap = new HashMap<>();
+        this.optionMap = new LinkedHashMap<>();
         this.optionMap.put("-p", this::updateWorkFolder);
         this.optionMap.put("-path", this::updateWorkFolder);
         this.optionMap.put("-g", this::updateGuard);

@@ -84,11 +84,13 @@ public class IncludeList {
 
     public String getIncludeFolders(){
         StringBuilder stringBuilder = new StringBuilder();
+
         for(IncludeList i : this.folderList){
             stringBuilder.append("#include \"./");
             stringBuilder.append(i.getFolderName());
             stringBuilder.append("/package-info.h\"\r\n");
         }
+
         return stringBuilder.toString();
     }
 
@@ -137,7 +139,6 @@ public class IncludeList {
             this.getLogger().warning("write file fail : " + pf);
         }
     }
-
 
     public void writeAll(String format){
         this.write(format);

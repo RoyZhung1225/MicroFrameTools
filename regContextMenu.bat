@@ -1,30 +1,15 @@
 @echo off
-mode con cols=40 lines=15
-:: Get ADMIN Privs
-:-------------------------------------
-mkdir "%windir%\BatchGotAdmin"
-if '%errorlevel%' == '0' (
-  rmdir "%windir%\BatchGotAdmin" & goto gotAdmin 
-) else ( goto UACPrompt )
+setlocal
 
-:UACPrompt
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    echo UAC.ShellExecute %0, "", "", "runas", 1 >> "%temp%\getadmin.vbs"
+REM 右鍵背景會傳入目錄路徑到 %1（我們在 registry 用 "%V"）
+set "WORKDIR=%~1"
+if "%WORKDIR%"=="" set "WORKDIR=%CD%"
 
-    "%temp%\getadmin.vbs"
+REM 切到工作目錄（可選，但通常符合直覺）
+cd /d "%WORKDIR%"
 
-    exit /B
+REM 呼叫 PowerShell 執行 launcher.ps1（ps1 路徑用 bat 所在目錄）
+powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File "%~dp0launcher.ps1" -WorkDir "%WORKDIR%"
 
-:gotAdmin
-    if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
-    pushd "%CD%"      
-    CD /D "%~dp0"
 
-:-------------------------------------
-:: End Get ADMIN Privs
-
-@echo off
-mode con cols=40 lines=20
-%SystemRoot%\System32\Reg.exe add "HKCR\Directory\Background\shell\KitToolShell\command" /ve /t REG_SZ /d "\"%SystemRoot%\System32\cmd.exe\" /c \"\"%~dp0start.bat\" \"%%V\"\"\"" /f
-PAUSE
-EXIT
+endlocal
