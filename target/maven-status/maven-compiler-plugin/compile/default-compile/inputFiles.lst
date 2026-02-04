@@ -1,6 +1,5 @@
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\Application.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\AppLifecycle.java
-C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\CommandGuardPlan.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\CompletableCommand.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\CompletionBootstrap.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\CompletionRequest.java
@@ -25,6 +24,7 @@ C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\util\termin
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\util\terminal\CommandCreate.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\util\terminal\CommandExecutor.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\util\terminal\CommandExit.java
+C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\util\terminal\CommandGuardPlan.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\util\terminal\CommandHandler.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\util\terminal\CommandHelp.java
 C:\Users\royzh\IdeaProjects\MicroFrameTool\src\main\java\org\example\util\terminal\CommandIndex.java
