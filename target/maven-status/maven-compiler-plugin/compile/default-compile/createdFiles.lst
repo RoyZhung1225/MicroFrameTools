@@ -1,3 +1,4 @@
+org\example\WorkspaceGuard$WorkspaceScanResult.class
 org\example\util\terminal\ConsoleSink.class
 org\example\util\terminal\CommandGuardPlan$GuardParser.class
 org\example\util\terminal\CommandGuardPlan$GuardParse.class

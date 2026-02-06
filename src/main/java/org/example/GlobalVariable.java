@@ -38,16 +38,16 @@ public class GlobalVariable {
         this.ignoreList = new IgnoreList();
     }
 
-    public void reload(){
-        this.config.reload(Application.getInstance().getConfigLoader().getConfig());
-        this.ignoreList.reloadFile(Application.getInstance().getConfigLoader().getIgnoreFile());
-        this.ignoreList.reloadFolder(Application.getInstance().getConfigLoader().getIgnoreFolder());
+    public boolean reload(){
+        return this.config.reload(Application.getInstance().getConfigLoader().getConfig()) |
+                this.ignoreList.reloadFile(Application.getInstance().getConfigLoader().getIgnoreFile()) |
+                this.ignoreList.reloadFolder(Application.getInstance().getConfigLoader().getIgnoreFolder());
     }
 
     public void update(String[] args){
 
         if(args.length == 0){
-            Application.getInstance().getLogger().info("usage: setting -<command>");
+            Application.getInstance().getLogger().warning("usage: setting -<command>");
             return;
         }
         for(int i=0; i<args.length; ++i){
@@ -62,7 +62,7 @@ public class GlobalVariable {
                     break;
 
                 if(i == args.length){
-                    this.getLogger().info("no setting value.");
+                    this.getLogger().warning("no setting value.");
                     break;
                 }
 
@@ -75,7 +75,7 @@ public class GlobalVariable {
 
     private void updateWorkFolder(String var){
         if(!Application.getInstance().getGlobal().getConfig().isRootMode()){
-            Application.getInstance().getLogger().info("rootMode is not open.");
+            Application.getInstance().getLogger().warning("rootMode is not open.");
             return;
         }
         this.program.setWorkFolder(new File(var));

@@ -9,8 +9,7 @@ import org.example.util.terminal.*;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 public final class Application extends FrameTerminal{
     @Getter
@@ -30,7 +29,7 @@ public final class Application extends FrameTerminal{
         this.logger = this.setupLogger();
         this.global = new GlobalVariable();
         this.configLoader = new ConfigLoader();
-        this.global.reload();
+        WorkspaceGuard.ensureWorkspaceOrExit(global.getProgram(), logger);
 
         this.commandHandlerMap.put("package", new CommandPackage());
         this.commandHandlerMap.put("exit", new CommandExit());
@@ -42,11 +41,9 @@ public final class Application extends FrameTerminal{
 
         Path work = global.getProgram().getWorkFolder().toPath();
         WorkspaceGuard.checkWorkspace(work, logger);
-
+        this.global.reload();
         this.start = true;
     }
-
-
 
     public void stop() {
         this.start = false;
@@ -68,18 +65,25 @@ public final class Application extends FrameTerminal{
         return this.commandHandlerMap.get(name);
     }
 
+
+    private static volatile boolean LOG_INITED = false;
+
     private Logger setupLogger() {
-        Logger result = Logger.getGlobal();
-        result.setUseParentHandlers(false);
+        Logger global = Logger.getGlobal();
 
-        // 清掉既有 handler，避免重複輸出（尤其你會重建 Application）
-        for (var h : result.getHandlers()) {
-            result.removeHandler(h);
-        }
+        if (LOG_INITED) return global;
+        LOG_INITED = true;
 
-        // 改成 JLine-aware handler：走 reader.printAbove，避免破壞輸入行/候選清單
-        result.addHandler(new org.example.util.terminal.JLineLogHandler(new LoggerFormat()));
-        return result;
+        // 斷根：移除 root/global 既有 handler（含 IDE / 預設 ConsoleHandler）
+        LogManager.getLogManager().reset();
+
+        global.setUseParentHandlers(false);
+
+        Handler h = new org.example.util.terminal.JLineLogHandler(new LoggerFormat());
+        h.setLevel(Level.ALL);
+        global.addHandler(h);
+
+        global.setLevel(Level.ALL);
+        return global;
     }
-
 }

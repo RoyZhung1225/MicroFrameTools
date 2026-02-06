@@ -2,10 +2,7 @@ package org.example;
 
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class IgnoreList {
     @Getter
@@ -33,7 +30,7 @@ public class IgnoreList {
         return new ArrayList<>(this.ignoreFolderMap.keySet());
     }
 
-    public void reloadFolder(String source) {
+    public boolean reloadFolder(String source) {
         String[] list = source.split("\\r?\\n");
 
         this.ignoreFolderMap.clear();
@@ -46,10 +43,13 @@ public class IgnoreList {
                 this.ignoreFolderMap.put(name, null);
             }
         } catch (Throwable ignore) {
+            Application.getInstance().getLogger().info("load ignoreFolder error! check the file!");
+            return false;
         }
+        return true;
     }
 
-    public void reloadFile(String source) {
+    public boolean reloadFile(String source) {
         String[] list = source.split("\\r?\\n");
 
         this.ignoreFileMap.clear();
@@ -63,13 +63,16 @@ public class IgnoreList {
                 this.ignoreFileMap.put(name, null);
             }
         } catch (Throwable ignore) {
+            Application.getInstance().getLogger().warning("load config error! check the file!");
+            return true;
         }
+        return true;
     }
 
-    public void reload(String folder, String file){
-        this.reloadFile(file);
-        this.reloadFolder(folder);
-    }
+//    public void reload(String folder, String file){
+//        this.reloadFile(file);
+//        this.reloadFolder(folder);
+//    }
 
     @Override
     public String toString(){

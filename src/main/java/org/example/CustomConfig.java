@@ -18,34 +18,55 @@ public class CustomConfig {
     public CustomConfig() {
     }
 
-    private String loadConfig(String config, String source){
+    private String loadConfig(String config, Map<String, Object> map){
 
-        Yaml yaml = new Yaml();
-
-        Map<String, Object> map = yaml.load(source);
-
-        if(map == null)
-            return null;
-
+        String load;
         Object obj;
-        obj = map.get(config);
-        String load = "";
-        if (obj == null) {
-            Application.getInstance().getLogger().info(String.format("Config <%s> loading error! Please check.", config));
-        }
+        try {
 
-        if(obj != null)
+            if(map == null)
+                return null;
+
+            obj = map.get(config);
+
+            if (obj == null) {
+                Application.getInstance().getLogger().info(String.format("Config <%s> loading error! Please check.", config));
+                return null;
+            }
+
             load = (String)obj;
 
-        return load;
+            return load;
+        }catch (ClassCastException e){
+            Application.getInstance().getLogger().warning("config.yml loading error!");
+            return null;
+        }
+
     }
 
-    public void reload(String source) {
+    public boolean reload(String source) {
+        String v;
+        Map<String, Object> map;
+        try {
+            Yaml yaml = new Yaml();
+            map = yaml.load(source);
+            v = loadConfig("namespace", map);
+            if (v != null) { this.namespace = v;}
 
-        this.namespace = this.loadConfig("namespace", source);
-        this.guard = this.loadConfig("guard", source);
-        this.path = this.loadConfig("path", source);
-        this.test = this.loadConfig("test", source);
+            v = loadConfig("guard", map);
+            if (v != null) { this.guard = v;}
+
+            v = loadConfig("path", map);
+            if (v != null) { this.path = v;}
+
+            v = loadConfig("test", map);
+            if (v != null) { this.test = v;}
+
+            return true;
+        }catch (Exception e){
+            Application.getInstance().getLogger().warning("config.yml format error!");
+            return false;
+        }
     }
 
     @Override

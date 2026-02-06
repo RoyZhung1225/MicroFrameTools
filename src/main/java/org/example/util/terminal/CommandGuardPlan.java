@@ -34,7 +34,10 @@ public final class CommandGuardPlan implements CommandHandler {
 
         // reload config so config.guard is fresh
         try {
-            Application.getInstance().getGlobal().reload();
+            if(!Application.getInstance().getGlobal().reload()){
+                logger.warning("config reload failed: ");
+                return true;
+            }
         } catch (Throwable t) {
             logger.warning("config reload failed: " + t.getMessage());
             return true;

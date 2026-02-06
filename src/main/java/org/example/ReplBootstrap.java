@@ -11,15 +11,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class ReplBootstrap{
+public class ReplBootstrap {
     public static void main(String[] args) throws IOException {
         Application application = new Application(args);
         new ReplBootstrap().run(application);
     }
-    public static final class CommandNameCompleter implements Completer{
+
+    public static final class CommandNameCompleter implements Completer {
         Application application;
 
-        public CommandNameCompleter(Application application){
+        public CommandNameCompleter(Application application) {
 
             this.application = application;
         }
@@ -77,15 +78,11 @@ public class ReplBootstrap{
                     .forEach(s -> candidates.add(new Candidate(s)));
         }
 
-
-
     }
 
 
-
-
     public void run(Application application) {
-        try(Terminal terminal = TerminalBuilder.builder()
+        try (Terminal terminal = TerminalBuilder.builder()
                 .system(true)
                 .jna(true)
                 .build()) {
@@ -95,46 +92,43 @@ public class ReplBootstrap{
                     .completer(new CommandNameCompleter(application))
                     .build();
 
-            printAbove(reader, "REPL ready. Ctrl+C=cancel line, Ctrl+D=exit, type 'exit' to quit.");
+            printAbove(reader, "Program ready. Ctrl+C=cancel line, Ctrl+D=exit, type 'exit' to quit.");
 
 
-
-            while (application.isStart()){
+            while (application.isStart()) {
                 String line;
                 try {
                     line = reader.readLine("> ");
 
-                }catch (UserInterruptException e){
+                } catch (UserInterruptException e) {
+                    printAbove(reader, "close Program");
+                    printAbove(reader, "see you next time");
                     continue;
-                }catch (EndOfFileException e){
-                    printAbove(reader, "bye");
+                } catch (EndOfFileException e) {
+                    printAbove(reader, "close Program");
+                    printAbove(reader, "see you next time");
                     application.stop();
                     break;
                 }
 
                 if (line == null) { // defensive
-                    printAbove(reader, "bye");
+                    printAbove(reader, "close Program");
+                    printAbove(reader, "see you next time");
                     application.stop();
                     break;
                 }
 
                 String trimmed = line.trim();
 
-                if(trimmed.isEmpty()) continue;
-
-                if("exit".equalsIgnoreCase(trimmed)){
-                    printAbove(reader, "bye");
-                    application.stop();
-                    break;
-                }
+                if (trimmed.isEmpty()) continue;
 
                 try {
                     application.executeLine(trimmed);
-                }catch (Exception e){
+                } catch (Exception e) {
                     printAbove(reader, "executeLine Error" + e.getMessage());
                 }
             }
-        }catch (IOException ioException){
+        } catch (IOException ioException) {
             throw new RuntimeException("Failed to init terminal", ioException);
         }
     }
