@@ -1,12 +1,17 @@
 package org.example.util.terminal;
 import org.example.util.buffer.StringBuff;
 
+import javax.management.loading.MLet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class CommandHelp implements CommandHandler {
+    public static final String BOLD = "\u001B[1m";
+    public static final String RESET = "\u001B[0m";
+    public static final String NL = System.lineSeparator();
+    public static final String TAB = "    ";
 
     private final Map<String, CommandHandler> commandHandlerMap;
 
@@ -63,13 +68,14 @@ public class CommandHelp implements CommandHandler {
 
     public void showCommandList(Logger logger){
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Help list:\n");
+        stringBuilder.append(BOLD+ "Help list:" + RESET).append(NL);
         for(Map.Entry<String, CommandHandler> entry : this.commandHandlerMap.entrySet()){
             CommandHandler commandHandler = entry.getValue();
-            stringBuilder.append(entry.getKey());
-            stringBuilder.append(" - ");
-            stringBuilder.append(commandHandler.getDescription());
-            stringBuilder.append('\n');
+            stringBuilder.append(BOLD).append("NAME").append(RESET).append(NL);
+            stringBuilder.append(TAB).append(entry.getKey());
+            stringBuilder.append(" - ").append(NL);
+            stringBuilder.append(BOLD).append("DESCRIPTION").append(RESET).append(NL);
+            stringBuilder.append(TAB).append(commandHandler.getDescription()).append(NL);
         }
         logger.info(stringBuilder.toString());
     }
@@ -78,7 +84,7 @@ public class CommandHelp implements CommandHandler {
 
     @Override
     public String getDescription() {
-        return "show commandList.";
+        return "show commandList." + NL;
     }
 
 

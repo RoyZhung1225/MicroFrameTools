@@ -3,13 +3,8 @@ package org.example.util.terminal;
 import org.example.util.buffer.StringBuff;
 
 import java.util.logging.Logger;
-
-
-import org.example.Application;
-
-import java.io.File;
 import java.util.*;
-import java.util.logging.Logger;
+
 
 public class CommandComplete implements CommandHandler {
 
@@ -79,7 +74,6 @@ public class CommandComplete implements CommandHandler {
                     p.cursor = Integer.parseInt(v);
                 } catch (Throwable ignore) {
                 }
-                continue;
             }
         }
         return p;

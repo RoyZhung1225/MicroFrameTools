@@ -18,6 +18,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static org.example.util.terminal.CommandHelp.*;
+
 public final class CommandGuardPlan implements CommandHandler {
 
     @Override
@@ -45,7 +47,7 @@ public final class CommandGuardPlan implements CommandHandler {
 
         String newPrefix = readGuardPrefixFromConfig();
         if (newPrefix == null || newPrefix.isBlank()) {
-            logger.warning("config.guard is empty; cannot run guard.");
+            logger.warning("config.guard is corrupted; cannot run guard.");
             return true;
         }
 
@@ -81,17 +83,23 @@ public final class CommandGuardPlan implements CommandHandler {
         }
 
         // summary for plan pass
-        logger.info("------------------------------------------------------------");
-        logger.info("[guard] newPrefix(config.guard): " + newPrefix);
-        logger.info("[guard] actions: " + actionsString(a.refreshPrefix, a.regenUuid));
-        logger.info("[guard] mode: " + (a.apply ? "apply" : "plan"));
-        logger.info("[guard] scanned: " + result.scanned);
-        logger.info("[guard] planned: " + result.planned);
-        logger.info("[guard] skipped(package-info.h): " + result.skippedPackageInfo);
-        logger.info("[guard] skipped(no-guard): " + result.skippedNoGuard);
-        logger.info("[guard] skipped(no-uuid-suffix): " + result.skippedNoUuidSuffix);
-        logger.info("[guard] skipped(invalid): " + result.skippedInvalid);
-        logger.info("------------------------------------------------------------");
+        StringBuilder sb = new StringBuilder(512);
+        sb.append(BOLD).append("[GUARD SUMMARY]").append(RESET).append(NL);
+        sb.append(TAB).append("------------------------------------------------------------").append(NL);
+        sb.append(TAB).append("[guard] newPrefix(config.guard): ").append(newPrefix).append(NL);
+        sb.append(TAB).append("[guard] actions: ").append(actionsString(a.refreshPrefix, a.regenUuid)).append(NL);
+        sb.append(TAB).append("[guard] mode: ").append(a.apply ? "apply" : "plan").append(NL);
+        sb.append(TAB).append("[guard] scanned: ").append(result.scanned).append(NL);
+        sb.append(TAB).append("[guard] planned: ").append(result.planned).append(NL);
+        sb.append(TAB).append("[guard] skipped(package-info.h): ").append(result.skippedPackageInfo).append(NL);
+        sb.append(TAB).append("[guard] skipped(no-guard): ").append(result.skippedNoGuard).append(NL);
+        sb.append(TAB).append("[guard] skipped(no-uuid-suffix): ").append(result.skippedNoUuidSuffix).append(NL);
+        sb.append(TAB).append("[guard] skipped(invalid): ").append(result.skippedInvalid).append(NL);
+        sb.append(TAB).append("------------------------------------------------------------");
+
+        logger.info(sb.toString());
+
+
 
         // 如果只是 plan，到這裡就結束
         if (!a.apply) return true;
@@ -129,10 +137,15 @@ public final class CommandGuardPlan implements CommandHandler {
             return true;
         }
 
-        logger.info("------------------------------------------------------------");
-        logger.info("[guard] applied: " + applied.applied);
-        logger.info("[guard] failed: " + applied.failed);
-        logger.info("------------------------------------------------------------");
+        sb = new StringBuilder(256);
+        sb.append(BOLD).append("[GUARD APPLY RESULT]").append(RESET).append(NL);
+        sb.append(TAB).append("------------------------------------------------------------").append(NL);
+        sb.append(TAB).append("[guard] applied: ").append(applied.applied).append(NL);
+        sb.append(TAB).append("[guard] failed: ").append(applied.failed).append(NL);
+        sb.append(TAB).append("------------------------------------------------------------");
+
+        logger.info(sb.toString());
+
 
         return true;
     }
@@ -245,19 +258,24 @@ public final class CommandGuardPlan implements CommandHandler {
 
 
     private static void printUsage(Logger logger) {
-        logger.info("usage:");
-        logger.info("  guard --file <filename.h> --refresh-prefix [--regen-uuid] [--apply] [--force]");
-        logger.info("  guard --file <filename.h> --regen-uuid [--refresh-prefix] [--apply] [--force]");
-        logger.info("  guard --all --refresh-prefix [--regen-uuid] [--apply] [--force]");
-        logger.info("  guard --all --regen-uuid [--refresh-prefix] [--apply] [--force]");
-        logger.info("  guard --dir <dirname> --refresh-prefix [--regen-uuid] [--apply] [--force]");
-        logger.info("notes:");
-        logger.info("  - new prefix is read from config.guard");
-        logger.info("  - default is plan; add --apply to modify files");
-        logger.info("  - without --force, --apply will ask for confirmation (y/yes)");
-        logger.info("  - excludes package-info.h");
-        logger.info("  - skip entries are not printed; only planned/applied files are printed");
+        StringBuilder sb = new StringBuilder(512);
+        sb.append(NL).append(BOLD).append("USAGE").append(RESET).append(NL);
+        sb.append(TAB).append("guard --file <filename.h> --refresh-prefix [--regen-uuid] [--apply] [--force]").append(NL);
+        sb.append(TAB).append("guard --file <filename.h> --regen-uuid [--refresh-prefix] [--apply] [--force]").append(NL);
+        sb.append(TAB).append("guard --all --refresh-prefix [--regen-uuid] [--apply] [--force]").append(NL);
+        sb.append(TAB).append("guard --all --regen-uuid [--refresh-prefix] [--apply] [--force]").append(NL);
+        sb.append(TAB).append("guard --dir <dirname> --refresh-prefix [--regen-uuid] [--apply] [--force]").append(NL);
+        sb.append(NL);
+        sb.append(BOLD).append("NOTES").append(RESET).append(NL);
+        sb.append(TAB).append("- new prefix is read from config.guard").append(NL);
+        sb.append(TAB).append("- default is plan; add --apply to modify files").append(NL);
+        sb.append(TAB).append("- without --force, --apply will ask for confirmation (y/yes)").append(NL);
+        sb.append(TAB).append("- excludes package-info.h").append(NL);
+        sb.append(TAB).append("- skip entries are not printed; only planned/applied files are printed");
+
+        logger.info(sb.toString());
     }
+
 
     private static String buildRerunFlags(Args a) {
         StringBuilder sb = new StringBuilder();

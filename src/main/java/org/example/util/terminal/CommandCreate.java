@@ -1,12 +1,11 @@
 package org.example.util.terminal;
 
-import org.example.Application;
-import org.example.CompletableCommand;
-import org.example.CompletionRequest;
-import org.example.SafeFiles;
+import org.example.*;
 import org.example.util.buffer.StringBuff;
 import org.jline.reader.Candidate;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.*;
 
 import java.io.File;
@@ -14,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.logging.Logger;
+import static org.example.util.terminal.CommandHelp.*;
 
 /**
  * CLI command: create
@@ -61,8 +61,8 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
     }
 
     private static final List<String> TYPES = List.of("class", "struct", "enum", "interface");
-    private static final List<String> OPTIONS = List.of("--dry-run", "--force", "--namespace", "--ns", "--help", "-h");
-    private static final List<String> NAMESPACES = List.of("my::core", "model::entity");
+    private static final List<String> OPTIONS = List.of("--dry-run", "--force", "-f", "--yes", "--y");
+
 
     @Override
     public void complete(CompletionRequest req, List<String> out) {
@@ -81,13 +81,6 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
             return;
         }
 
-        // 2) 再處理「補 option value」：--namespace/--ns 的 value
-        String prev = prevToken(w, idx);
-        if ("--namespace".equalsIgnoreCase(prev) || "--ns".equalsIgnoreCase(prev)) {
-            addStartsWith(out, NAMESPACES, prefix);
-            return;
-        }
-
         // 3) 最後用「位置參數數量」來判斷要補什麼（不要用 idx 判斷）
         int pos = countCreatePositionals(w, idx);
 
@@ -103,9 +96,6 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
         if (pos == 1) {
             return;
         }
-
-        // pos>=2：type + name 都有了 → 補 namespace（可選）
-        addStartsWith(out, NAMESPACES, prefix);
     }
 
 
@@ -152,60 +142,59 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
     }
 
     private static final class ParsedArgs {
-        boolean dryRun;
         boolean force;
-        String type;            // class/struct/enum/interface
-        String name;            // Foo
-        String namespace;       // my::core
+        boolean yes;       // --yes / -y：跳過確認
+        String type;       // class/struct/enum/interface
+        String name;       // Foo
+        String namespace;  // my::core
     }
+
 
     private ParsedArgs parseArgs(StringBuff sb) {
         ParsedArgs a = new ParsedArgs();
-        a.namespace = Application.getInstance().getGlobal().getConfig().getNamespace();
+        String defaultNs = Application.getInstance().getGlobal().getConfig().getNamespace();
+        a.namespace = defaultNs;
 
-        // 收集所有 token（注意：這會把 sb 消耗完）
-        java.util.ArrayList<String> tokens = new java.util.ArrayList<>();
+        ArrayList<String> tokens = new ArrayList<>();
         while (sb.remaining() > 0) {
             String t = sb.get();
             if (t != null && !t.isBlank()) tokens.add(t);
         }
 
-        // 先解析 option（允許任意順序）
-        java.util.ArrayList<String> positional = new java.util.ArrayList<>();
+        ArrayList<String> positional = new ArrayList<>();
+        boolean nsByOption = false;
+
         for (int i = 0; i < tokens.size(); i++) {
             String t = tokens.get(i);
-
-            if ("--dry-run".equalsIgnoreCase(t) || "-n".equalsIgnoreCase(t)) {
-                a.dryRun = true;
-                continue;
-            }
 
             if ("--force".equalsIgnoreCase(t) || "-f".equalsIgnoreCase(t)) {
                 a.force = true;
                 continue;
             }
 
-            // 帶值選項：--namespace <value>
+            if ("--yes".equalsIgnoreCase(t) || "-y".equalsIgnoreCase(t)) {
+                a.yes = true;
+                continue;
+            }
+
             if ("--namespace".equalsIgnoreCase(t) || "--ns".equalsIgnoreCase(t)) {
                 if (i + 1 < tokens.size()) {
                     a.namespace = tokens.get(++i);
+                    nsByOption = true;
                 }
                 continue;
             }
 
-            // 不是 option 的都當位置參數
             positional.add(t);
         }
 
-        // 位置參數映射：type name [namespace]
         if (positional.size() > 0) a.type = positional.get(0);
         if (positional.size() > 1) a.name = positional.get(1);
-        if (positional.size() > 2 && (a.namespace == null || a.namespace.isBlank()
-                || a.namespace.equals(Application.getInstance().getGlobal().getConfig().getNamespace()))) {
-            a.namespace = positional.get(2);
-        }
+        if (positional.size() > 2 && !nsByOption) a.namespace = positional.get(2);
+
         return a;
     }
+
 
 
 
@@ -267,14 +256,12 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
     @Override
     public boolean onCommand(StringBuff stringBuff, Logger logger) {
         ParsedArgs a = parseArgs(stringBuff);
-        this.dryRun = a.dryRun;
         this.force = a.force;
 
         if (a.type == null || a.type.isBlank()) {
             this.sendUsage(logger);
             return true;
         }
-
         if (a.name == null || a.name.isBlank()) {
             logger.warning("file name is required.");
             this.sendUsage(logger);
@@ -294,9 +281,26 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
         map.put("$NAMESPACE$", a.namespace);
         map.put("$CLASSNAME$", a.name);
 
-        if (func.test(logger, map)) logger.info("success");
+        // ===== Confirm (預設) =====
+        if (!a.yes) {
+            this.dryRun = true;
+            func.test(logger, map);
+
+            if (!askYesNo(logger, "Continue? [y/N] ")) {
+                logger.info("aborted.");
+                return true;
+            }
+        }
+
+
+        // ===== Execute =====
+        this.dryRun = false;
+        boolean ok = func.test(logger, map);
+        if (ok) logger.info("success");
         return true;
     }
+
+
 
 
     @Override
@@ -306,13 +310,14 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
 
     private String getCreateHelpList(){
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("usage: create <class|struct|enum|interface> <Name> [Namespace]\n");
-        stringBuilder.append("--------------------------Create commandList--------------------------\n");
+        stringBuilder.append(BOLD + "USAGE" + RESET).append(NL);
+        stringBuilder.append(TAB+TAB).append("usage: create <class|struct|enum|interface> <Name> [Namespace]").append(NL);
+        stringBuilder.append(TAB+TAB).append("--------------------------Create commandList--------------------------").append(NL);
         for(Map.Entry<String, BiPredicate<Logger, Map<String, String>>> entry : this.option.entrySet()){
-            stringBuilder.append(entry.getKey());
-            stringBuilder.append('\n');
+            stringBuilder.append(TAB+TAB).append(entry.getKey());
+            stringBuilder.append(NL);
         }
-        stringBuilder.append("----------------------------------------------------------------------\n");
+        stringBuilder.append(TAB+TAB).append("----------------------------------------------------------------------").append(NL);
         return stringBuilder.toString();
     }
 
@@ -320,9 +325,8 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
     public void sendUsage(Logger logger) {
         logger.info("usage: create <class|struct|enum|interface> <Name> [Namespace]");
         logger.info("example:");
-        logger.info("  create class Foo");
-        logger.info("  create class Foo my::core");
-        logger.info("  create -s Data model::entity");
+        logger.info("  create class/enum/interface <className>");
+        logger.info("  create class/enum/interface <fileName> <folderName>");
     }
 
     /**
@@ -372,11 +376,92 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
 
     /** class 會生成 .h + .cpp（先 .h 成功才做 .cpp） */
     private boolean createClass(Logger logger, Map<String, String> map) {
-        if (this.createFile("class.h", logger, map)) {
-            return this.createFile("class.cpp", logger, map);
+        // 讀模板
+        String hTpl, cppTpl;
+        try {
+            hTpl = Application.getInstance().getConfigLoader().getCustomFile("class.h");
+            cppTpl = Application.getInstance().getConfigLoader().getCustomFile("class.cpp");
+        } catch (Throwable e) {
+            logger.warning("load template failed: " + e.getMessage());
+            return false;
         }
-        return false;
+        if (hTpl == null || hTpl.isBlank() || cppTpl == null || cppTpl.isBlank()) {
+            logger.warning("template not found/empty: class.h / class.cpp");
+            return false;
+        }
+
+        // folder / className
+        File folder = this.getFolder(map.get("$NAMESPACE$"), logger);
+        if (folder == null) return false;
+
+        String className = map.get("$CLASSNAME$");
+        if (className == null || className.isBlank()) {
+            logger.warning("file name is required.");
+            return false;
+        }
+
+        File hFile = new File(folder, className + ".h");
+        File cppFile = new File(folder, className + ".cpp");
+
+        // dry-run
+        if (this.dryRun) {
+            boolean hExists = hFile.exists();
+            boolean cppExists = cppFile.exists();
+            boolean anyExists = hExists || cppExists;
+
+            String action = anyExists ? (this.force ? "overwrite" : "skip(exists)") : "create";
+            logger.info(String.format("[dry-run] would %s: %s, %s (template=class.h/class.cpp)",
+                    action, hFile, cppFile));
+
+            return !anyExists || this.force;
+        }
+
+        // render
+        String hOut = fileReplace(hTpl, map);
+        String cppOut = fileReplace(cppTpl, map);
+
+        // write pair
+        try {
+            boolean ok = atomicWritePair(
+                    hFile.toPath(), hOut,
+                    cppFile.toPath(), cppOut,
+                    StandardCharsets.UTF_8,
+                    this.force
+            );
+            if (!ok) return false;
+
+            logger.info("make new file " + hFile + ".");
+            logger.info("make new file " + cppFile + ".");
+            return true;
+
+        } catch (FileAlreadyExistsException e) {
+            logger.warning("file already exists: " + e.getMessage() + " (use --force to overwrite)");
+            return false;
+
+        } catch (Throwable e) {
+            logger.warning("write class pair failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return false;
+        }
     }
+
+    private boolean askYesNo(Logger logger, String msg) {
+        var p = Application.getInstance().getPrompter();
+        if (p == null) {
+            // 沒有 prompter（非 REPL 模式），保守：拒絕或當作 No
+            logger.warning("no interactive terminal; aborted.");
+            return false;
+        }
+
+        String line = p.readLine(msg);
+        if (line == null) return false;
+
+        String s = line.trim().toLowerCase(java.util.Locale.ROOT);
+        return s.equals("y") || s.equals("yes");
+    }
+
+
+
+
 
     /** struct 只生成 .h */
     private boolean createStruct(Logger logger, Map<String, String> map) {
@@ -402,61 +487,124 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
      * 5) 寫檔
      */
     private boolean createFile(String temp, Logger logger, Map<String, String> map) {
-        // 讀取模板內容（如果回傳 null，後續 replace 會 NPE）
-        String header = Application.getInstance().getConfigLoader().getCustomFile(temp);
 
-        // 根據 namespace 找到輸出資料夾
-        File folder = this.getFolder(map.get("$NAMESPACE$"), logger);
-        if (folder == null) return false;
-
-
-        // 檔名（類名）
-        String className = map.get("$CLASSNAME$");
-        if (className == null) {
-            logger.warning("file name not found.");
+        String header;
+        try {
+            header = Application.getInstance().getConfigLoader().getCustomFile(temp);
+        } catch (Throwable e) {
+            logger.warning("load template failed: " + temp + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
             return false;
         }
 
-        // 產生目標檔案：<className>.<ext>
+        if (header == null || header.isBlank()) {
+            logger.warning("template not found/empty: " + temp);
+            return false;
+        }
+
+        File folder = this.getFolder(map.get("$NAMESPACE$"), logger);
+        if (folder == null) return false;
+
+        String className = map.get("$CLASSNAME$");
+        if (className == null || className.isBlank()) {
+            logger.warning("file name is required.");
+            return false;
+        }
+
         File file = new File(folder, className + temp.substring(temp.indexOf(".")));
 
         if (this.dryRun) {
             boolean exists = file.exists();
-
-            String action;
-            if (exists) {
-                action = this.force ? "overwrite" : "skip(exists)";
-            } else {
-                action = "create";
-            }
-
-            logger.info(String.format(
-                    "[dry-run] would %s: %s (template=%s)",
-                    action, file, temp
-            ));
-
-            // 模擬真實結果：
-            // - 檔案不存在 → 成功
-            // - 檔案存在 + force → 成功（會覆蓋）
-            // - 檔案存在 + 無 force → 失敗
+            String action = exists ? (this.force ? "overwrite" : "skip(exists)") : "create";
+            logger.info(String.format("[dry-run] would %s: %s (template=%s)", action, file, temp));
             return !exists || this.force;
         }
 
-
-
-        // 套用模板替換
-        header = fileReplace(header, map);
-
-        // 寫檔失敗就回報
-        if (!writeFile(file, header, logger)) {
-            logger.warning(String.format("make %s failure.", file));
+        // ✅ 確保資料夾存在（不然常常寫不進去）
+        try {
+            Files.createDirectories(folder.toPath());
+        } catch (Throwable e) {
+            logger.warning("create folder failed: " + folder + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
             return false;
         }
 
+        header = fileReplace(header, map);
 
+        if (!writeFile(file, header, logger)) {
+            // ✅ 別再固定說「同名檔」，用情境分開提示
+            if (!this.force && file.exists()) {
+                logger.warning("file already exists: " + file + " (use --force to overwrite)");
+            } else {
+                logger.warning("write file failed: " + file);
+            }
+            return false;
+        }
 
         logger.info(String.format("make new file %s.", file));
         return true;
     }
+
+    private static Path stageWrite(Path target, String content, Charset charset) throws IOException {
+        Files.createDirectories(target.getParent());
+        String tmpName = target.getFileName() + ".staging." + UUID.randomUUID();
+        Path tmp = target.resolveSibling(tmpName);
+        Files.writeString(tmp, content, charset, StandardOpenOption.CREATE_NEW);
+        return tmp;
+    }
+
+    private static void commitMove(Path tmp, Path target) throws IOException {
+        try {
+            Files.move(tmp, target,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void quietDelete(Path p) {
+        if (p == null) return;
+        try { Files.deleteIfExists(p); } catch (Throwable ignored) {}
+    }
+
+    private boolean atomicWritePair(Path hTarget, String hContent,
+                                    Path cppTarget, String cppContent,
+                                    Charset charset, boolean force) throws IOException {
+
+        // parent 目錄（你的 atomicWriteString 也是這樣）
+        Files.createDirectories(hTarget.getParent());
+        Files.createDirectories(cppTarget.getParent());
+
+        // force=false 時：任一存在就整體拒絕（一致性）
+        if (!force && (Files.exists(hTarget) || Files.exists(cppTarget))) {
+            throw new FileAlreadyExistsException(
+                    (Files.exists(hTarget) ? hTarget : cppTarget).toString()
+            );
+        }
+
+        Path hTmp = null;
+        Path cppTmp = null;
+
+        try {
+            // 1) stage：兩份都先寫 tmp
+            hTmp = stageWrite(hTarget, hContent, charset);
+            cppTmp = stageWrite(cppTarget, cppContent, charset);
+
+            // 2) commit：再搬成正式檔（盡量 atomic move）
+            commitMove(hTmp, hTarget);
+            hTmp = null; // 已經 commit，不用 cleanup
+
+            commitMove(cppTmp, cppTarget);
+            cppTmp = null;
+
+            return true;
+        } finally {
+            // 任一步失敗：清 staging 垃圾
+            quietDelete(hTmp);
+            quietDelete(cppTmp);
+        }
+    }
+
+
+
 
 }

@@ -4,6 +4,7 @@ org\example\util\terminal\CommandGuardPlan$GuardParser.class
 org\example\util\terminal\CommandGuardPlan$GuardParse.class
 org\example\util\terminal\CommandGuardPlan$GuardRunner.class
 org\example\util\terminal\JLineLogHandler.class
+org\example\Prompter.class
 org\example\util\terminal\CommandGuardPlan$Result.class
 org\example\ReplBootstrap.class
 org\example\CompletionBootstrap.class

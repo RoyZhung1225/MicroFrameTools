@@ -2,6 +2,7 @@ package org.example;
 
 import lombok.Getter;
 
+import lombok.Setter;
 import org.example.util.format.LoggerFormat;
 import org.example.util.terminal.*;
 
@@ -44,6 +45,10 @@ public final class Application extends FrameTerminal{
         this.global.reload();
         this.start = true;
     }
+
+    @Getter
+    @Setter
+    private Prompter prompter;
 
     public void stop() {
         this.start = false;

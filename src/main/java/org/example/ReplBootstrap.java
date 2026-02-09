@@ -92,6 +92,16 @@ public class ReplBootstrap {
                     .completer(new CommandNameCompleter(application))
                     .build();
 
+            application.setPrompter(prompt -> {
+                try {
+                    return reader.readLine(prompt);
+                } catch (UserInterruptException e) {
+                    return null; // 視為取消
+                } catch (EndOfFileException e) {
+                    return null; // 視為取消/退出
+                }
+            });
+
             printAbove(reader, "Program ready. Ctrl+C=cancel line, Ctrl+D=exit, type 'exit' to quit.");
 
 
