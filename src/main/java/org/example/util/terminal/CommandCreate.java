@@ -1,8 +1,11 @@
 package org.example.util.terminal;
 
-import org.example.*;
-import org.example.util.buffer.StringBuff;
-import org.jline.reader.Candidate;
+import org.example.app.Application;
+import org.example.cli_core.buffer.CommandHandler;
+import org.example.cli_core.buffer.StringBuff;
+import org.example.completion.CompletableCommand;
+import org.example.completion.CompletionRequest;
+import org.example.infra_fs.SafeFiles;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -13,7 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.logging.Logger;
-import static org.example.util.terminal.CommandHelp.*;
+import java.util.stream.Stream;
+
+import static org.example.cli_core.buffer.CommandHelp.*;
 
 /**
  * CLI command: create
@@ -61,7 +66,9 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
     }
 
     private static final List<String> TYPES = List.of("class", "struct", "enum", "interface");
-    private static final List<String> OPTIONS = List.of("--dry-run", "--force", "-f", "--yes", "--y");
+
+    private static final List<String> OPTIONS = List.of( "--force", "-f", "--namespace", "--ns");
+
 
 
     @Override
@@ -96,7 +103,100 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
         if (pos == 1) {
             return;
         }
+
+        if (pos >= 2) {
+            addStartsWith(out, namespaceCandidatesFromWorkspace(null /* or logger */), prefix);
+            addStartsWith(out, OPTIONS, prefix);
+
+        }
     }
+
+
+    private static List<String> namespaceCandidatesFromWorkspace(Logger logger) {
+        // 你現有的來源
+        var app = Application.getInstance();
+        Path work = app.getGlobal().getProgram().getWorkFolder().toPath().toAbsolutePath().normalize();
+        String base = app.getGlobal().getConfig().getPath(); // 例如 "src" 或 "include"
+
+        // base 必須是相對路徑：避免掃到 workFolder 外
+        Path basePath = Paths.get(base == null ? "" : base);
+        if (basePath.isAbsolute()) {
+            // 安全起見，直接不掃（或給 warning）
+            if (logger != null) logger.warning("config.path must be relative; absolute path is blocked: " + basePath);
+            return List.of();
+        }
+
+        Path root = work.resolve(basePath).toAbsolutePath().normalize();
+        if (!root.startsWith(work)) {
+            if (logger != null) logger.warning("scan root is outside workFolder (blocked): " + root);
+            return List.of();
+        }
+
+        if (!Files.isDirectory(root)) return List.of();
+
+        final int maxDepth = 6;      // 你可以調
+        final int maxResults = 200;  // 你可以調
+
+        ArrayList<String> out = new ArrayList<>();
+        HashSet<String> seen = new HashSet<>();
+
+        // 可選：把 root 本身也當 namespace ""（通常不用）
+        // out.add("");
+
+        try (Stream<Path> st = Files.walk(root, maxDepth)) {
+            st.filter(Files::isDirectory)
+                    .filter(p -> !p.equals(root)) // 不要把 root 自己當候選
+                    .forEach(p -> {
+                        if (out.size() >= maxResults) return;
+
+                        Path rel = root.relativize(p);
+                        // rel: my/core/utils -> my::core::utils
+                        String ns = toNamespace(rel);
+                        if (ns.isBlank()) return;
+
+                        // 可選：只保留合法 segment（避免補出 weird folder）
+                        if (!isValidNamespace(ns)) return;
+
+                        if (seen.add(ns)) out.add(ns);
+                    });
+        } catch (IOException e) {
+            if (logger != null) logger.warning("scan namespace failed: " + e.getMessage());
+            return List.of();
+        }
+
+        // 排序：更穩定
+        out.sort(String::compareToIgnoreCase);
+        return out;
+    }
+
+    private static String toNamespace(Path rel) {
+        if (rel == null) return "";
+        StringBuilder sb = new StringBuilder();
+        for (Path seg : rel) {
+            String s = seg.toString();
+            if (s == null || s.isBlank()) continue;
+
+            // 跳過隱藏/特殊資料夾（你可依需求調整）
+            if (s.equals(".") || s.equals("..")) return "";
+
+            if (sb.length() > 0) sb.append("::");
+            sb.append(s);
+        }
+        return sb.toString();
+    }
+
+    // namespace segment 基本合法性（可放寬）
+    private static boolean isValidNamespace(String ns) {
+        // my::core::v2 這種 OK；含空白/奇怪符號就略過
+        String[] parts = ns.split("::");
+        for (String p : parts) {
+            if (p.isEmpty()) return false;
+            // 允許英數底線，且不能以數字開頭
+            if (!p.matches("[A-Za-z_][A-Za-z0-9_]*")) return false;
+        }
+        return true;
+    }
+
 
 
     private static int countCreatePositionals(List<String> tokens, int wordIndex) {
@@ -410,7 +510,10 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
             boolean anyExists = hExists || cppExists;
 
             String action = anyExists ? (this.force ? "overwrite" : "skip(exists)") : "create";
-            logger.info(String.format("[dry-run] would %s: %s, %s (template=class.h/class.cpp)",
+            logger.info(String.format(
+                    "[preview] " + NL + NL + "would %s: " +
+                            NL + TAB + "%s" +
+                            NL + TAB + "%s " + NL + TAB + "(template=class.h/class.cpp)",
                     action, hFile, cppFile));
 
             return !anyExists || this.force;
@@ -515,7 +618,7 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
         if (this.dryRun) {
             boolean exists = file.exists();
             String action = exists ? (this.force ? "overwrite" : "skip(exists)") : "create";
-            logger.info(String.format("[dry-run] would %s: %s (template=%s)", action, file, temp));
+            logger.info(String.format("[preview] " + NL + NL + " would %s:" + NL + TAB + " %s " + NL + TAB + "(template=%s)", action, file, temp));
             return !exists || this.force;
         }
 

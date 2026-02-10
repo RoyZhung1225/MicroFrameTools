@@ -1,7 +1,8 @@
 package org.example.util.terminal;
 
-import org.example.Application;
-import org.example.util.buffer.StringBuff;
+import org.example.app.Application;
+import org.example.cli_core.buffer.CommandHandler;
+import org.example.cli_core.buffer.StringBuff;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -12,6 +13,9 @@ public class CommandSetting implements CommandHandler {
 
     @Override
     public boolean onCommand(StringBuff stringBuff, Logger logger) {
+        // 範例：setting completion.list on/off
+
+
         Application.getInstance().getGlobal().update(this.buffToArray(stringBuff));
         return true;
     }

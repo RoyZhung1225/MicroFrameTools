@@ -1,10 +1,11 @@
 package org.example.util.terminal;
 
 
-import org.example.Application;
-import org.example.CompletableCommand;
-import org.example.CompletionRequest;
-import org.example.util.buffer.StringBuff;
+import org.example.app.Application;
+import org.example.cli_core.buffer.CommandHandler;
+import org.example.completion.CompletableCommand;
+import org.example.completion.CompletionRequest;
+import org.example.cli_core.buffer.StringBuff;
 
 import java.io.File;
 import java.util.HashMap;

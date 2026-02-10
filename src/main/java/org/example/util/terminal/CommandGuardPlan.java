@@ -1,7 +1,10 @@
 package org.example.util.terminal;
 
-import org.example.Application;
-import org.example.util.buffer.StringBuff;
+import org.example.app.Application;
+import org.example.cli_core.buffer.CommandHandler;
+import org.example.cli_core.buffer.StringBuff;
+import org.example.completion.CompletableCommand;
+import org.example.completion.CompletionRequest;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -18,9 +21,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static org.example.util.terminal.CommandHelp.*;
+import static org.example.cli_core.buffer.CommandHelp.*;
+import static org.example.module_guard.completeGuardLibrary.ALL_FLAGS;
 
-public final class CommandGuardPlan implements CommandHandler {
+public final class CommandGuardPlan implements CommandHandler, CompletableCommand {
 
     @Override
     public boolean onCommand(StringBuff args, Logger logger) {
@@ -36,7 +40,7 @@ public final class CommandGuardPlan implements CommandHandler {
 
         // reload config so config.guard is fresh
         try {
-            if(!Application.getInstance().getGlobal().reload()){
+            if(!Application.getInstance().getGlobal().reload(Application.getInstance().getConfigLoader(), logger)){
                 logger.warning("config reload failed: ");
                 return true;
             }
@@ -154,6 +158,79 @@ public final class CommandGuardPlan implements CommandHandler {
     public String getDescription() {
         return "Plan/apply include-guard updates for .h files (prefix from config.guard; refresh prefix and/or regenerate UUID).";
     }
+
+    @Override
+    public void complete(CompletionRequest req, List<String> out) {
+        List<String> tokens = req.getTokens();
+        String prefix = req.getPrefix();
+        int idx = req.getWordIndex();
+
+        if (prefix == null) prefix = "";
+
+        // idx == 0 是 command 名，外層已處理
+        if (idx == 0) return;
+
+        // 1) 如果正在補 flag（以 - 開頭）
+        if (prefix.startsWith("-")) {
+            addStartsWith(out, ALL_FLAGS, prefix);
+            return;
+        }
+
+        // 2) 判斷前一個 token 是哪個 flag（補 value）
+        String prev = prevToken(tokens, idx);
+
+        switch (prev) {
+            case "--file" -> {
+                // 只補 .h（用 workspace root 掃）
+                out.addAll(guardHeaderCandidates(req));
+                return;
+            }
+            case "--dir" -> {
+                out.addAll(dirCandidates(req));
+                return;
+            }
+            case "--dir-name" -> {
+                out.addAll(dirNameCandidates(req));
+                return;
+            }
+            case "--pick" -> {
+                // pick 是數字，不補
+                return;
+            }
+        }
+
+        // 3) 其他位置：仍允許補 flags
+        addStartsWith(out, ALL_FLAGS, prefix);
+    }
+    private static String prevToken(List<String> tokens, int wordIndex) {
+        int i = wordIndex - 1;
+        if (tokens == null || i < 0 || i >= tokens.size()) return "";
+        return tokens.get(i);
+    }
+
+    private static void addStartsWith(List<String> out, List<String> src, String prefix) {
+        String p = prefix == null ? "" : prefix;
+        for (String s : src) {
+            if (s == null || s.isBlank()) continue;
+            if (p.isEmpty() || s.startsWith(p)) out.add(s);
+        }
+    }
+    private List<String> guardHeaderCandidates(CompletionRequest req) {
+        // 先不掃整棵 tree，避免卡
+        // 可先回傳空或 placeholder
+        return List.of();
+    }
+
+    private List<String> dirCandidates(CompletionRequest req) {
+        return List.of();
+    }
+
+    private List<String> dirNameCandidates(CompletionRequest req) {
+        return List.of();
+    }
+
+
+
 
     // ---------------- args ----------------
 

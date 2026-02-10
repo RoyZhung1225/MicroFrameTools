@@ -1,8 +1,9 @@
 package org.example.util.terminal;
 
-import org.example.Application;
-import org.example.PackageInfo;
-import org.example.util.buffer.StringBuff;
+import org.example.app.Application;
+import org.example.cli_core.buffer.CommandHandler;
+import org.example.module_packageinfo.PackageInfo;
+import org.example.cli_core.buffer.StringBuff;
 
 import java.util.logging.Logger;
 
