@@ -1,7 +1,7 @@
 package org.example.runtime;
 
 import lombok.Getter;
-import org.example.ConfigLoader;
+import org.example.config.ConfigLoader;
 import org.example.ProgramConfig;
 import org.example.config.CustomConfig;
 import org.example.app.Application;
@@ -71,19 +71,6 @@ public class GlobalVariable {
         return ok;
     }
 
-
-
-//    // Global.java
-//    private final ProgramRuntime runtime = new ProgramRuntime();
-//    public ProgramRuntime runtime() { return runtime; }
-//
-//
-//    @Setter
-//    @Getter
-//    public static final class ProgramRuntime {
-//        private volatile boolean completionList = false; // ✅ 預設關閉
-//
-//    }
 
     public void update(String[] args) {
         if (args == null || args.length == 0) {

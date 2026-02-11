@@ -3,9 +3,11 @@ package org.example;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.example.app.Application;
 
 import java.io.File;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 
@@ -20,31 +22,28 @@ public class ProgramConfig {
 
     public ProgramConfig() {
         this.workFolder = new File(System.getProperty("user.dir"));
-        this.programFolder = detectProgramFolderFallback();
+        this.programFolder = detectProgramFolder();
     }
 
-    private static File detectProgramFolderFallback() {
-        // 1) 最準：從 class 的 CodeSource 推位置（IDE=target/classes，jar=jar所在資料夾）
+    private static File detectProgramFolder() {
         try {
-            URL url = ProgramConfig.class.getProtectionDomain()
+            var uri = Application.class.getProtectionDomain()
                     .getCodeSource()
-                    .getLocation();
-            if (url != null) {
-                URI uri = url.toURI();
-                Path p = Path.of(uri).toAbsolutePath().normalize();
+                    .getLocation()
+                    .toURI();
+            Path p = Path.of(uri).toAbsolutePath().normalize();
 
-                // IDE: .../target/classes -> parent parent = project root/target (依你要)
-                // 這裡定義 "programFolder" = 該 location 的 parent folder
-                // - jar: .../app.jar -> parent = jar所在資料夾
-                // - dir: .../target/classes/ -> parent = .../target/classes 的 parent = .../target
-                Path parent = p.getParent();
-                if (parent != null) return parent.toFile();
+            // 如果是 jar 檔，取 parent；如果是資料夾（classes），就用它本身
+            if (p.toString().toLowerCase().endsWith(".jar")) {
+                return p.getParent().toFile();
             }
-        } catch (Throwable ignore) {}
-
-        // 2) fallback：至少別炸，回 user.dir
-        return new File(System.getProperty("user.dir"));
+            return p.toFile();
+        } catch (URISyntaxException e) {
+            // fallback：至少不炸
+            return new File(System.getProperty("user.dir"));
+        }
     }
+
 
     @Override
     public String toString() {

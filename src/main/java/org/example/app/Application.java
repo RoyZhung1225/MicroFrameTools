@@ -3,7 +3,7 @@ package org.example.app;
 import lombok.Getter;
 
 import lombok.Setter;
-import org.example.ConfigLoader;
+import org.example.config.ConfigLoader;
 import org.example.cli_core.buffer.CommandHandler;
 
 import org.example.runtime.GlobalVariable;

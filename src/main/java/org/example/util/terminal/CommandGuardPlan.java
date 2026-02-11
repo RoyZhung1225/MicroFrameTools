@@ -2,6 +2,7 @@ package org.example.util.terminal;
 
 import org.example.app.Application;
 import org.example.cli_core.buffer.CommandHandler;
+import org.example.cli_core.buffer.HelpableCommand;
 import org.example.cli_core.buffer.StringBuff;
 import org.example.completion.CompletableCommand;
 import org.example.completion.CompletionRequest;
@@ -24,7 +25,7 @@ import java.util.stream.Stream;
 import static org.example.cli_core.buffer.CommandHelp.*;
 import static org.example.module_guard.completeGuardLibrary.ALL_FLAGS;
 
-public final class CommandGuardPlan implements CommandHandler, CompletableCommand {
+public final class CommandGuardPlan implements CommandHandler, CompletableCommand, HelpableCommand {
 
     @Override
     public boolean onCommand(StringBuff args, Logger logger) {
@@ -87,21 +88,8 @@ public final class CommandGuardPlan implements CommandHandler, CompletableComman
         }
 
         // summary for plan pass
-        StringBuilder sb = new StringBuilder(512);
-        sb.append(BOLD).append("[GUARD SUMMARY]").append(RESET).append(NL);
-        sb.append(TAB).append("------------------------------------------------------------").append(NL);
-        sb.append(TAB).append("[guard] newPrefix(config.guard): ").append(newPrefix).append(NL);
-        sb.append(TAB).append("[guard] actions: ").append(actionsString(a.refreshPrefix, a.regenUuid)).append(NL);
-        sb.append(TAB).append("[guard] mode: ").append(a.apply ? "apply" : "plan").append(NL);
-        sb.append(TAB).append("[guard] scanned: ").append(result.scanned).append(NL);
-        sb.append(TAB).append("[guard] planned: ").append(result.planned).append(NL);
-        sb.append(TAB).append("[guard] skipped(package-info.h): ").append(result.skippedPackageInfo).append(NL);
-        sb.append(TAB).append("[guard] skipped(no-guard): ").append(result.skippedNoGuard).append(NL);
-        sb.append(TAB).append("[guard] skipped(no-uuid-suffix): ").append(result.skippedNoUuidSuffix).append(NL);
-        sb.append(TAB).append("[guard] skipped(invalid): ").append(result.skippedInvalid).append(NL);
-        sb.append(TAB).append("------------------------------------------------------------");
 
-        logger.info(sb.toString());
+
 
 
 
@@ -140,8 +128,7 @@ public final class CommandGuardPlan implements CommandHandler, CompletableComman
             logger.warning("guard apply failed: " + e.getMessage());
             return true;
         }
-
-        sb = new StringBuilder(256);
+        StringBuilder sb = new StringBuilder(256);
         sb.append(BOLD).append("[GUARD APPLY RESULT]").append(RESET).append(NL);
         sb.append(TAB).append("------------------------------------------------------------").append(NL);
         sb.append(TAB).append("[guard] applied: ").append(applied.applied).append(NL);
@@ -156,8 +143,9 @@ public final class CommandGuardPlan implements CommandHandler, CompletableComman
 
     @Override
     public String getDescription() {
-        return "Plan/apply include-guard updates for .h files (prefix from config.guard; refresh prefix and/or regenerate UUID).";
+        return "update include-guards for .h files (plan/apply).";
     }
+
 
     @Override
     public void complete(CompletionRequest req, List<String> out) {
@@ -229,6 +217,46 @@ public final class CommandGuardPlan implements CommandHandler, CompletableComman
         return List.of();
     }
 
+    @Override
+    public HelpDoc help() {
+        return new HelpDoc(
+                "Plan/apply include-guard updates for header files (.h). Prefix comes from config.guard.",
+                // USAGE
+                String.join("\n",
+                        "guard --file <path|name.h> [--pick N] (--refresh-prefix|--regen-uuid) [--apply] [--force]",
+                        "guard --dir <path>         (--refresh-prefix|--regen-uuid) [--apply] [--force]",
+                        "guard --dir-name <name>    [--pick N] (--refresh-prefix|--regen-uuid) [--apply] [--force]",
+                        "guard --all                (--refresh-prefix|--regen-uuid) [--apply] [--force]"
+                ),
+                // OPTIONS / FLAGS
+                java.util.List.of(
+                        "--file <...>          target a single .h file (path or bare name under workDir+config.path)",
+                        "--dir <...>           target a directory (absolute or relative to workDir/config.path)",
+                        "--dir-name <name>     search directory name under workDir+config.path",
+                        "--all                 scan under workDir+config.path",
+                        "--pick <N>            choose one match when multiple (1-based)",
+                        "--refresh-prefix      keep UUID suffix, replace prefix with config.guard",
+                        "--regen-uuid          keep prefix (or new prefix if refresh-prefix also set), regenerate UUID suffix",
+                        "--apply               actually write files (default: plan only)",
+                        "--force               skip confirmation prompt for --apply",
+                        "Notes: excludes package-info.h; only .h files are processed"
+                ),
+                // EXAMPLES
+                java.util.List.of(
+                        "guard --file Foo.h --regen-uuid",
+                        "guard --file src\\ufm\\Foo.h --regen-uuid --apply --force",
+                        "guard --all --refresh-prefix",
+                        "guard --dir include --regen-uuid --apply",
+                        "guard --dir-name ufm --pick 2 --refresh-prefix --apply"
+                ),
+                // NOTES
+                String.join("\n",
+                        "Plan mode prints what would change without modifying files.",
+                        "Apply mode runs a second pass and writes changes using atomic replace.",
+                        "If --file name.h matches multiple files under root, use --pick N."
+                )
+        );
+    }
 
 
 
@@ -569,8 +597,6 @@ public final class CommandGuardPlan implements CommandHandler, CompletableComman
 
         Path work = workFolder();
         Path root = work.resolve(configPath()).toAbsolutePath().normalize();
-        logger.warning("[debug] work=" + workFolder());
-        logger.warning("[debug] root=" + root);
 
 
         // 1) 先當成 path 試著解析（absolute or relative to work）
@@ -578,11 +604,6 @@ public final class CommandGuardPlan implements CommandHandler, CompletableComman
         Path file = p.isAbsolute() ? p : work.resolve(p);
         file = file.toAbsolutePath().normalize();
         boolean isBareName = isBareFileName(input);
-        logger.warning("[debug] work=" + work);
-        logger.warning("[debug] configPath=" + configPath());
-        logger.warning("[debug] root=" + root);
-        logger.warning("[debug] input=" + input);
-        logger.warning("[debug] resolvedAsPath=" + file + " exists=" + Files.isRegularFile(file));
 
 
 

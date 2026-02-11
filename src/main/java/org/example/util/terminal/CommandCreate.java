@@ -2,6 +2,7 @@ package org.example.util.terminal;
 
 import org.example.app.Application;
 import org.example.cli_core.buffer.CommandHandler;
+import org.example.cli_core.buffer.HelpableCommand;
 import org.example.cli_core.buffer.StringBuff;
 import org.example.completion.CompletableCommand;
 import org.example.completion.CompletionRequest;
@@ -37,7 +38,7 @@ import static org.example.cli_core.buffer.CommandHelp.*;
  * - 目前 namespace 預設為 config.namespace，但若第三個 token 有值會覆蓋它
  * - 寫檔採「若檔案已存在就失敗」（不覆蓋）
  */
-public class CommandCreate implements CommandHandler, CompletableCommand {
+public class CommandCreate implements CommandHandler, CompletableCommand, HelpableCommand {
 
 
     /**
@@ -107,7 +108,6 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
         if (pos >= 2) {
             addStartsWith(out, namespaceCandidatesFromWorkspace(null /* or logger */), prefix);
             addStartsWith(out, OPTIONS, prefix);
-
         }
     }
 
@@ -239,6 +239,26 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
             if (s == null || s.isBlank()) continue;
             if (p.isEmpty() || s.startsWith(p)) out.add(s);
         }
+    }
+
+    @Override
+    public HelpDoc help() {
+        return new HelpDoc(
+                "Generate C++ template files from .kitconfig templates.",
+                "create <class|struct|enum|interface> <Name> [Namespace]\n" +
+                        "create <type> <Name> --namespace <Namespace> [--force] [--yes]",
+                List.of(
+                        "--namespace, --ns <value>  set namespace (default from config.namespace)",
+                        "--force, -f                overwrite existing files",
+                        "--yes, -y                  skip confirmation"
+                ),
+                List.of(
+                        "create class Foo",
+                        "create struct Bar my::core",
+                        "create class Foo --ns my::core --force --yes"
+                ),
+                "Templates are read from .kitconfig (e.g. class.h, class.cpp)."
+        );
     }
 
     private static final class ParsedArgs {
@@ -405,21 +425,10 @@ public class CommandCreate implements CommandHandler, CompletableCommand {
 
     @Override
     public String getDescription() {
-        return this.getCreateHelpList();
+        return "create files from templates"; // 總覽 fallback 用不到也沒關係
     }
 
-    private String getCreateHelpList(){
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(BOLD + "USAGE" + RESET).append(NL);
-        stringBuilder.append(TAB+TAB).append("usage: create <class|struct|enum|interface> <Name> [Namespace]").append(NL);
-        stringBuilder.append(TAB+TAB).append("--------------------------Create commandList--------------------------").append(NL);
-        for(Map.Entry<String, BiPredicate<Logger, Map<String, String>>> entry : this.option.entrySet()){
-            stringBuilder.append(TAB+TAB).append(entry.getKey());
-            stringBuilder.append(NL);
-        }
-        stringBuilder.append(TAB+TAB).append("----------------------------------------------------------------------").append(NL);
-        return stringBuilder.toString();
-    }
+
 
     /** 顯示 usage（目前訊息沒有包含 namespace 參數） */
     public void sendUsage(Logger logger) {

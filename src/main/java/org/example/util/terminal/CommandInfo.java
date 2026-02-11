@@ -30,10 +30,8 @@ public class CommandInfo implements CommandHandler, CompletableCommand {
     }
 
     private static final List<String> INFO_ITEMS = List.of(
-            "commands", "config", "workspace", "version", "help"
+            "config", "workspace", "version", "ignore"
     );
-
-    private static final List<String> OPTIONS = List.of("--help", "-h");
 
     @Override
     public void complete(CompletionRequest req, List<String> out) {

@@ -3,26 +3,28 @@ package org.example.util.terminal;
 import org.example.app.Application;
 import org.example.cli_core.buffer.CommandHandler;
 import org.example.cli_core.buffer.StringBuff;
+import org.example.completion.CompletableCommand;
+import org.example.completion.CompletionRequest;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
-public class CommandSetting implements CommandHandler {
+public class CommandSetting implements CommandHandler, CompletableCommand {
 
 
     @Override
     public boolean onCommand(StringBuff stringBuff, Logger logger) {
-        // 範例：setting completion.list on/off
 
 
-        Application.getInstance().getGlobal().update(this.buffToArray(stringBuff));
+
         return true;
     }
 
     @Override
     public String getDescription() {
-        return this.getSettingHelpList();
+        return "";
     }
 
 
@@ -46,5 +48,10 @@ public class CommandSetting implements CommandHandler {
             result[i] = stringBuff.get();
         }
         return result;
+    }
+
+    @Override
+    public void complete(CompletionRequest req, List<String> out) {
+
     }
 }
